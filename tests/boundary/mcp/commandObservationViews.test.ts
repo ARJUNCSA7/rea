@@ -368,7 +368,7 @@ it.each([true, false, null])(
 
 it("reassembles exact Unicode text while preserving incomplete producer coverage", async () => {
   const parent = createEvidence(
-    undefined,
+    unknownTarget("not-observed"),
     { id: "fixture", name: "Fixture", version: null },
     {
       operation: "inspect_with_objdump",
@@ -428,7 +428,7 @@ it("reassembles exact Unicode text while preserving incomplete producer coverage
 it("honors a larger caller-selected objdump text page that fits delivery", async () => {
   const stdout = "x".repeat(65_536);
   const parent = createEvidence(
-    undefined,
+    unknownTarget("not-observed"),
     { id: "fixture", name: "Fixture", version: null },
     {
       operation: "inspect_with_objdump",
