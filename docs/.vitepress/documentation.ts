@@ -179,6 +179,11 @@ export const documentationSections = [
         route: "/pe-load-config",
       },
       {
+        text: "PE overlay",
+        source: "guides/native/pe-overlay.md",
+        route: "/pe-overlay",
+      },
+      {
         text: "Match native functions across builds",
         source: "native-function-matching.md",
         route: "/native-function-matching",
