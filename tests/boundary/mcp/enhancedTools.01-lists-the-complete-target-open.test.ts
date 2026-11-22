@@ -302,7 +302,11 @@ describe("enhanced MCP tools", () => {
       ["decompile_all", { output_directory: join(outputParent, "out") }],
       [
         "reconstruct_procedure_hardware_interactions",
-        { procedure: "0x1", architecture: "cortex-m", platform: "stm32f4" },
+        {
+          procedure: "0x1",
+          hardware_architecture: "cortex-m",
+          platform: "stm32f4",
+        },
       ],
     ] as const;
     const functionProgress: {

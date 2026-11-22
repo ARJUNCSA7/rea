@@ -94,6 +94,14 @@ export type ReconstructProcedureHardwareInput = z.infer<
   typeof reconstructProcedureHardwareInputSchema
 >;
 
+/** Public CLI/MCP contract input schema; keeps `hardware_architecture` distinct from `open_binary.architecture`. */
+export const reconstructProcedureHardwareContractInputSchema =
+  reconstructProcedureHardwareInputSchema.omit({ architecture: true }).extend({
+    hardware_architecture: hardwareArchitectureSchema.describe(
+      "Target hardware CPU architecture for memory map and register resolution",
+    ),
+  });
+
 /** Enriched peripheral block with optional SoC-specific controller identification. */
 export interface ReconstructedPeripheralBlock extends HardwarePeripheralBlockSummary {
   readonly socPeripheralName?: string | null;

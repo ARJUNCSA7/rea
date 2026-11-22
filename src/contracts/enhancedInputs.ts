@@ -4,7 +4,7 @@ import { nativeProcedureInputSchema } from "../domain/native/nativeProcedureInpu
 import { decompileDirectoryInputSchema } from "./decompileDirectory.js";
 import { nativeValueTraceInputSchema } from "../domain/native/nativeValueTrace.js";
 import { nativeInvestigationTraceLimitsSchema } from "../domain/native/nativeInvestigationGraph.js";
-import { reconstructProcedureHardwareInputSchema } from "../domain/firmware/hardwarePeripheralReconstructionSchema.js";
+import { reconstructProcedureHardwareContractInputSchema } from "../domain/firmware/hardwarePeripheralReconstructionSchema.js";
 const traceLiteralInputSchema = z.strictObject({
   query: z.string().min(1),
   case_sensitive: z.boolean().default(false),
@@ -60,7 +60,7 @@ export const enhancedInputSchemas = {
   analyze_function: nativeProcedureInputSchema,
   inspect_native_api: nativeProcedureInputSchema,
   reconstruct_procedure_hardware_interactions:
-    reconstructProcedureHardwareInputSchema,
+    reconstructProcedureHardwareContractInputSchema,
   trace_feature: traceLiteralInputSchema,
   trace_call_path: z.strictObject({
     start: z.string().describe("A starting procedure symbol or address"),

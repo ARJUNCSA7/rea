@@ -52,7 +52,7 @@ export const TOOL_EXAMPLE_OVERRIDES: Readonly<
   inspect_native_api: { procedure: "main" },
   reconstruct_procedure_hardware_interactions: {
     procedure: "reset_handler",
-    architecture: "cortex-m",
+    hardware_architecture: "cortex-m",
     platform: "stm32f4",
   },
   trace_feature: { query: "license" },

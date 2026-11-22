@@ -92,7 +92,7 @@ it("executes reconstruct_procedure_hardware_interactions through the advertised 
         name: "reconstruct_procedure_hardware_interactions",
         arguments: {
           procedure: "reset_handler",
-          architecture: "cortex-m",
+          hardware_architecture: "cortex-m",
           platform: "stm32f4",
           svd_xml: svdXml,
         },

@@ -274,9 +274,10 @@ export class EnhancedTools {
     >,
     signal?: AbortSignal,
   ): EnhancedResult {
+    const { hardware_architecture, ...rest } = input;
     const reconstructed = await reconstructProcedureHardwareInteractions(
       this.analysis,
-      input,
+      { ...rest, architecture: hardware_architecture },
       signal === undefined ? undefined : { signal },
     );
     if (!reconstructed.ok) return reconstructed;

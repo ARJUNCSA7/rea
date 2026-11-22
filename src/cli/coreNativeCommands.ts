@@ -316,16 +316,9 @@ const registerProcedureSelectorCommands = (
       "reconstruct_procedure_hardware_interactions",
     ),
     {
-      description: `Reconstruct MMIO and peripheral register interactions for one native firmware procedure. ${addressOrProcedureGuidance} ${equalSelectorGuidance}`,
+      description: `Reconstruct MMIO and peripheral register interactions for one native firmware procedure. ${addressOrProcedureGuidance}`,
       sessionTarget: nativeTarget("Local firmware or executable path", true),
       positionals: ["procedure"],
-      selectorOptions: {
-        procedure: {
-          name: "procedure",
-          description: `Procedure selector; use this option for symbols beginning with a dash. ${addressOrProcedureGuidance}`,
-          kind: "native",
-        },
-      },
       jsonInputs: {
         devicetree:
           "Expected inline JSON or a readable JSON file path for --devicetree",
@@ -334,7 +327,7 @@ const registerProcedureSelectorCommands = (
         procedure: {
           description: `Procedure name or canonical address. ${addressOrProcedureGuidance}`,
         },
-        architecture: {
+        hardware_architecture: {
           name: "hardware-architecture",
           description:
             "Target CPU architecture (arm, cortex-m, xtensa, riscv, arm64, x86, mips)",
