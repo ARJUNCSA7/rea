@@ -147,7 +147,6 @@ export const projectCommandObservationView = (
     ...shared,
     kind: "summary" as const,
     view: { kind: "summary" as const },
-    coverage: completeWithinViewCoverage(1, 1),
   };
   if (parent.operation === "gdb_console") {
     const parsed = readGdbCommandResult(parent);
