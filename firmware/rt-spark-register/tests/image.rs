@@ -30,6 +30,13 @@ fn pin_and_pll_follow_the_caller_layout() {
     assert_eq!(field(word, BitField { low_bit: 6, width: 9 }), 192);
     assert_eq!(field(word, BitField { low_bit: 16, width: 2 }), 0);
     assert_eq!(field(word, BitField { low_bit: 24, width: 4 }), 4);
+    assert_eq!(field(word, BitField { low_bit: 0, width: 32 }), word);
+    assert_eq!(
+        field(0xdead_beef, BitField { low_bit: 16, width: 32 }),
+        0x0000_dead
+    );
+    assert_eq!(field(word, BitField { low_bit: 0, width: 0 }), 0);
+    assert_eq!(field(word, BitField { low_bit: 32, width: 4 }), 0);
 
     let ahb1enr = 0x4002_3830;
     assert_eq!(GpioPortClock::B.write(ahb1enr).mask, 0x02);

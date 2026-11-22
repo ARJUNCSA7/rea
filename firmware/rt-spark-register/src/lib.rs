@@ -50,8 +50,15 @@ pub const fn gpio_base(index: u8, layout: GpioLayout) -> Option<u32> {
 }
 
 pub const fn field(value: u32, spec: BitField) -> u32 {
-    let mask = (1u32 << spec.width) - 1;
-    (value >> spec.low_bit) & mask
+    if spec.width == 0 || spec.low_bit >= u32::BITS {
+        return 0;
+    }
+    let shifted = value >> spec.low_bit;
+    if spec.width >= u32::BITS {
+        shifted
+    } else {
+        shifted & ((1u32 << spec.width) - 1)
+    }
 }
 
 pub const fn masked_write(address: u32, mask: u32) -> MaskedWrite {

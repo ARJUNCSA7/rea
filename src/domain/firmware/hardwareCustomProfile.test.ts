@@ -467,3 +467,73 @@ describe("CMSIS-SVD bounds, derived spans, and overlapping windows", () => {
     }
   });
 });
+
+describe("CMSIS-SVD XML comments and iterative traversal", () => {
+  it("ignores commented-out peripherals and registers when parsing XML", () => {
+    const parsed = parseCmsisSvd(`
+      <device><name>CommentedSvd</name><peripherals>
+        <!--
+        <peripheral>
+          <name>UART0</name>
+          <baseAddress>0x40009000</baseAddress>
+          <registers>
+            <register><name>OLD_DR</name><addressOffset>0x00</addressOffset></register>
+          </registers>
+        </peripheral>
+        -->
+        <peripheral>
+          <name>UART0</name>
+          <baseAddress>0x40001000</baseAddress>
+          <registers>
+            <!-- <register><name>GHOST</name><addressOffset>0x04</addressOffset></register> -->
+            <register><name>DR</name><addressOffset>0x00</addressOffset></register>
+          </registers>
+        </peripheral>
+      </peripherals></device>
+    `);
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.value.peripherals).toHaveLength(1);
+    expect(parsed.value.peripherals[0]?.baseAddress).toBe("0x40001000");
+    expect(
+      parsed.value.peripherals[0]?.registers.map((r) => r.mnemonic),
+    ).toEqual(["UART0_DR"]);
+  });
+
+  it("resolves long acyclic derivedFrom chains iteratively and bounds deep cluster nesting without stack overflow", () => {
+    const chainLength = 2500;
+    const periphs: string[] = [
+      `<peripheral><name>P0</name><baseAddress>0x40000000</baseAddress><registers><register><name>SR</name><addressOffset>0x00</addressOffset></register></registers></peripheral>`,
+    ];
+    for (let i = 1; i < chainLength; i += 1) {
+      const addr = (0x40000000 + i * 0x100).toString(16);
+      periphs.push(
+        `<peripheral derivedFrom="P${i - 1}"><name>P${i}</name><baseAddress>0x${addr}</baseAddress></peripheral>`,
+      );
+    }
+    const longChain = parseCmsisSvd(
+      `<device><name>DeepChain</name><peripherals>${periphs.join("")}</peripherals></device>`,
+    );
+    expect(longChain.ok).toBe(true);
+    if (longChain.ok) {
+      expect(longChain.value.peripherals).toHaveLength(chainLength);
+      expect(
+        longChain.value.peripherals[chainLength - 1]?.registers[0]?.mnemonic,
+      ).toBe(`P${chainLength - 1}_SR`);
+    }
+
+    let nestedCluster = `<register><name>LEAF</name><addressOffset>0x0</addressOffset></register>`;
+    for (let d = 0; d < 80; d += 1) {
+      nestedCluster = `<cluster><name>C${d}</name><addressOffset>0x0</addressOffset>${nestedCluster}</cluster>`;
+    }
+    const deepClusters = parseCmsisSvd(
+      `<device><name>DeepClusters</name><peripherals><peripheral><name>P0</name><baseAddress>0x40000000</baseAddress><registers>${nestedCluster}</registers></peripheral></peripherals></device>`,
+    );
+    expect(deepClusters.ok).toBe(false);
+    if (!deepClusters.ok) {
+      expect(deepClusters.error).toContain(
+        "cluster nesting exceeds maximum depth",
+      );
+    }
+  });
+});
