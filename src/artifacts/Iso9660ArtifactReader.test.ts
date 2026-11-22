@@ -169,6 +169,37 @@ it("inventories volume facts and classifies an extracted executable child", asyn
   ).toBe(sha256(setup));
 });
 
+it("lists an empty file whose extent is the unallocated sentinel", async () => {
+  for (const joliet of [false, true]) {
+    const { bytes, layout } = buildIso9660Image({
+      files: [
+        { path: "empty.txt", bytes: Buffer.alloc(0) },
+        { path: "full.txt", bytes: Buffer.from("full") },
+      ],
+      joliet,
+    });
+    for (const records of [layout.primaryRecords, layout.jolietRecords]) {
+      const record = records.get("empty.txt");
+      if (record === undefined) continue;
+      bytes.writeUInt32LE(0xfffffff0, record + 2);
+      bytes.writeUInt32BE(0xfffffff0, record + 6);
+    }
+    const snapshot = await scanCanonicalArtifactInventory(
+      await writeCarrier("empty.iso", bytes),
+    );
+    expect(snapshot.manifest.root_format).toBe("iso9660");
+    const empty = snapshot.occurrences.find(
+      (row) => row.logical_path === "empty.txt",
+    );
+    expect(empty).toMatchObject({ declared_size: 0, hash_status: "verified" });
+    expect(JSON.stringify(empty)).toContain("unallocated extent sentinel");
+    const full = snapshot.occurrences.find(
+      (row) => row.logical_path === "full.txt",
+    );
+    expect(full).toMatchObject({ hash_status: "verified" });
+  }
+});
+
 it("concatenates contiguous extents and refuses separated or interleaved ones", async () => {
   const big = Buffer.concat([Buffer.alloc(SECTOR, 1), Buffer.alloc(9, 2)]);
   const path = await writeCarrier(

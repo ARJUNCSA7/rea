@@ -427,6 +427,14 @@ const entryFor = (
     unpacked: false,
     limitations: [
       ...(layout === "contiguous" ? [] : [layoutLimitation(layout)]),
+      ...(!member.directory &&
+      member.dataLength === 0 &&
+      first.extendedAttributeLength === 0 &&
+      first.dataOffset >= ISO9660_SECTOR_BYTES * 0xfffffff0
+        ? [
+            "ISO 9660 empty file records the unallocated extent sentinel; source_location repeats the declared block and names no stored bytes.",
+          ]
+        : []),
       ...(member.identifierCharset === "undeclared"
         ? [
             "ISO 9660 primary identifier has bytes above 0x7F, which ECMA-119 does not assign; they are shown as Latin-1 and the intended characters are unknown.",

@@ -529,6 +529,10 @@ export const admitIso9660Extent = (
   volumeBytes: number,
 ): Result<void, ParseFailureError> =>
   parsedIso9660(() => {
+    // An empty extent with no extended attribute record stores no bytes, so
+    // its location names no data; writers such as libarchive record the
+    // unallocated sentinel 0xfffffff0 there.
+    if (extent.dataLength === 0 && extent.extendedAttributeLength === 0) return;
     if (extent.dataOffset > volumeBytes)
       throw iso9660Malformed(
         `extent at block ${String(extent.location)} starts past the end of the declared volume`,

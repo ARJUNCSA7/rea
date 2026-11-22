@@ -112,7 +112,10 @@ that declares an interleave gap without a file unit size, is malformed. An
 extent that starts or ends, counting
 interleave gaps, outside the declared volume is malformed. An extent inside
 the declared volume that the image ends before or within is `truncated`.
-These refusals do not produce an empty successful inventory.
+These refusals do not produce an empty successful inventory. An empty file without an extended attribute record stores no bytes, so its
+extent location is not checked; writers such as libarchive record the
+unallocated sentinel `0xfffffff0` there, and the entry carries a limitation
+saying its `source_location` names no stored bytes.
 
 ```sh
 rea inspect-artifact ./installer.iso --detail summary \
