@@ -513,6 +513,11 @@ export const documentationSections = [
         source: "wxapkg.md",
         route: "/wxapkg",
       },
+      {
+        text: "ISO 9660 disc images",
+        source: "iso9660-images.md",
+        route: "/iso9660-images",
+      },
     ],
   },
   {
