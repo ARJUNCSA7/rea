@@ -11,6 +11,12 @@ import { createArtifactClassificationProbe } from "./ArtifactClassificationProbe
 import { scanCanonicalArtifactInventory } from "../../tests/fixtures/artifactInventory.js";
 import { createTestTempDirectory } from "../../tests/fixtures/temporaryDirectory.js";
 import { pe } from "../domain/binaryTarget.fixture.js";
+import { parseBinaryTarget } from "../application/BinaryTargetResolver.js";
+import {
+  buildFfsFile,
+  buildFv,
+  buildImage,
+} from "../../tests/fixtures/uefiImage.js";
 import {
   buildIso9660Image,
   type Iso9660FixtureFile,
@@ -381,4 +387,57 @@ it("lists a primary identifier with bytes above 0x7F with an undeclared-charset 
     "ISO 9660 primary identifier has bytes above 0x7F, which ECMA-119 does not assign; they are shown as Latin-1 and the intended characters are unknown.",
   ]);
   expect(byPath.get("plain.txt")?.limitations).toEqual([]);
+});
+
+it("keeps the ISO tree when a file inside the first MiB is a UEFI firmware volume", async () => {
+  // File extents are sector-aligned, so a whole aligned FFS2 volume sits in
+  // the first MiB where the whole-file UEFI probe would otherwise admit it.
+  const firmware = buildImage({
+    volumes: [
+      buildFv({
+        files: [
+          buildFfsFile({
+            guid: "9e21fd93-9c72-4c15-8c4b-e77f9db8d4d2",
+            typeCode: 0x07,
+            payload: Buffer.from("driver bytes", "ascii"),
+          }),
+        ],
+      }).buffer,
+    ],
+  });
+  const { bytes, layout } = buildIso9660Image({
+    files: [
+      { path: "README.TXT", bytes: Buffer.from("media\n") },
+      { path: "firmware/bios.fd", bytes: firmware },
+    ],
+  });
+  expect(layout.fileOffsets.get("firmware/bios.fd")).toBeLessThan(1 << 20);
+  const path = await writeCarrier("media.bin", bytes);
+
+  const snapshot = await scanCanonicalArtifactInventory(path);
+  expect(snapshot.manifest.root_format).toBe("iso9660");
+  const paths = snapshot.occurrences.map((row) => row.logical_path);
+  expect(paths).toEqual(
+    expect.arrayContaining([".", "README.TXT", "firmware/bios.fd"]),
+  );
+  const root = snapshot.occurrences.find((row) => row.logical_path === ".");
+  const child = snapshot.occurrences.find(
+    (row) => row.logical_path === "firmware/bios.fd",
+  );
+  // Nested bytes are not whole-file firmware probed; the volume stays a
+  // member whose exact bytes can be extracted and inspected as a root.
+  expect(child).toMatchObject({ entry_kind: "file", hash_status: "verified" });
+  expect(
+    snapshot.nodes.find((node) => node.artifact_id === child?.artifact_id)
+      ?.sha256,
+  ).toBe(sha256(firmware));
+  const directory = snapshot.occurrences.find(
+    (row) => row.logical_path === "firmware",
+  );
+  expect(directory?.parent_occurrence_id).toBe(root?.occurrence_id);
+  expect(child?.parent_occurrence_id).toBe(directory?.occurrence_id);
+  expect(await parseBinaryTarget(path)).toMatchObject({
+    ok: true,
+    value: { kind: "archive", format: "iso9660" },
+  });
 });

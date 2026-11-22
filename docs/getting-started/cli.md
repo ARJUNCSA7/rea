@@ -446,7 +446,7 @@ rea inspect-artifact ./installer.iso --detail summary --evidence_output installe
 rea extract-artifact ./installer.iso --json
 ```
 
-See [ISO 9660 disc images](../iso9660-images.md) for volume facts, Joliet
+See [ISO 9660 disc images](../guides/firmware/iso9660-images.md) for volume facts, Joliet
 names, multi-extent and interleaved files, and what is not decoded.
 
 Inspect local model declarations without loading weights:

@@ -193,3 +193,24 @@ export const recognizeArtifactFormat = (
   }
   return undefined;
 };
+
+/**
+ * Whether a bounded prefix alone lets the table recognize a format. Claims
+ * that need more input or refuse do not count. The whole-file firmware probe
+ * asks this first, so inventory classification and binary target resolution
+ * both rank the table above it: an ISO 9660 image keeps its tree even when a
+ * sector-aligned file inside it is a complete UEFI firmware volume.
+ */
+export const recognizesArtifactPrefix = (
+  prefix: Buffer,
+  fileSize: number,
+): boolean => {
+  const input = { prefix, fileSize };
+  for (
+    let recognition = recognizeArtifactFormat(input);
+    recognition !== undefined;
+    recognition = recognizeArtifactFormat(input, recognition.index + 1)
+  )
+    if (recognition.state === "recognized") return true;
+  return false;
+};

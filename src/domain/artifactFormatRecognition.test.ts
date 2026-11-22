@@ -5,7 +5,11 @@ import {
   esp8266Image,
   espImage,
 } from "../../tests/fixtures/espImage.js";
-import { recognizeArtifactFormat } from "./artifactFormatRecognition.js";
+import { buildFv } from "../../tests/fixtures/uefiImage.js";
+import {
+  recognizeArtifactFormat,
+  recognizesArtifactPrefix,
+} from "./artifactFormatRecognition.js";
 import {
   fullAndroidOtaPayload,
   v1AndroidOtaPayload,
@@ -239,4 +243,20 @@ it("recognizes an image that ends inside its first descriptor sector", () => {
       espFlashLayout: false,
     }),
   ).toBeUndefined();
+});
+
+it("lets a prefix the table recognizes outrank whole-file firmware probes", () => {
+  // A sector-aligned file extent can hold a complete firmware volume.
+  const volume = buildFv({ files: [] }).buffer;
+  const { bytes } = buildIso9660Image({
+    files: [{ path: "bios.fd", bytes: volume }],
+  });
+  expect(bytes.includes("_FVH", 0, "ascii")).toBe(true);
+  expect(recognizesArtifactPrefix(bytes, bytes.length)).toBe(true);
+  // Claims that wait on more input do not count, and a bare volume claims
+  // nothing the table recognizes.
+  expect(recognizesArtifactPrefix(bytes.subarray(0, 4096), bytes.length)).toBe(
+    false,
+  );
+  expect(recognizesArtifactPrefix(volume, volume.length)).toBe(false);
 });

@@ -964,7 +964,7 @@ whenever the image has another tree. Unsafe names become `entry-<index>`
 with the stored identifier in `source_path`. Separated multi-extent and interleaved files are listed with
 unavailable hashes, so extract other files by `occurrence_ids`. Rock Ridge,
 UDF, and El Torito boot images are not decoded. See
-[ISO 9660 disc images](https://github.com/morluto/rea/blob/main/docs/iso9660-images.md).
+[ISO 9660 disc images](https://github.com/morluto/rea/blob/main/docs/guides/firmware/iso9660-images.md).
 
 Android A/B OTA `payload.bin` files (CrAU v2) use the same
 inspection/extraction workflows. Prefer a retained summary for header,
