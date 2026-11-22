@@ -262,6 +262,7 @@ import { nativeLoadImageSummaryViewResultSchema } from "./summarySchemas/nativeL
 import { nativeObservationSummaryViewResultSchemas } from "./summarySchemas/nativeObservationSummarySchemas.js";
 import { nativeProcedureReferencesSummaryViewResultSchema } from "./summarySchemas/nativeProcedureReferencesSummarySchema.js";
 import { nativeValueTraceSummaryViewResultSchema } from "./summarySchemas/nativeValueTraceSummarySchema.js";
+import { debPackageSummaryViewResultSchema } from "./summarySchemas/debPackageSummarySchema.js";
 import { nugetNupkgSummaryViewResultSchema } from "./summarySchemas/nugetNupkgSummarySchema.js";
 import { objdumpSummaryViewResultSchema } from "./summarySchemas/objdumpSummarySchema.js";
 import { pcapCaptureSummaryViewResultSchema } from "./summarySchemas/pcapCaptureSummarySchema.js";
@@ -313,6 +314,7 @@ export {
   browserScenarioSummaryViewResultSchema,
   byteEntropySummaryViewResultSchema,
   dartAotSummaryViewResultSchema,
+  debPackageSummaryViewResultSchema,
   desktopApplicationSummaryViewResultSchema,
   devicetreeSummaryViewResultSchema,
   elfDependenciesSummaryViewResultSchema,
@@ -373,6 +375,7 @@ const viewResultBase = {
   parent_operation: z.enum([
     "trace_web_source_location",
     "inspect_python_pyc",
+    "inspect_deb_package",
     "inspect_nuget_nupkg",
     "inspect_erlang_beam",
     "inspect_devicetree",
@@ -712,6 +715,7 @@ export const analysisViewResultSchema = z.discriminatedUnion("kind", [
     erlangBeamSummaryViewResultSchema,
     devicetreeSummaryViewResultSchema,
     pythonPycSummaryViewResultSchema,
+    debPackageSummaryViewResultSchema,
     nativeExportsSummaryViewResultSchema,
     elfDependenciesSummaryViewResultSchema,
     byteEntropySummaryViewResultSchema,
