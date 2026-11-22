@@ -284,7 +284,7 @@ export class EnhancedTools {
     );
     if (!reconstructed.ok) return reconstructed;
     return ok(
-      jsonValueSchema.parse(
+      ownedJsonValueSchema.parse(
         projectHardwarePeripheralReconstruction(reconstructed.value),
       ),
     );
