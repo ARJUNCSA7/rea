@@ -23,6 +23,10 @@ import {
 } from "../domain/binaryTarget.js";
 import { DFUSE_SUFFIX_BYTES } from "../domain/firmware/dfuse.js";
 import {
+  ISO9660_DESCRIPTOR_OFFSET,
+  ISO9660_SIGNATURE_BYTES,
+} from "../domain/iso9660/iso9660Structures.js";
+import {
   createAsarHeaderSignatureProbe,
   type FinalAsarHeaderProbeObservation,
 } from "../resources/index.js";
@@ -37,6 +41,8 @@ export interface ArtifactClassificationEvidence {
   readonly prefix: Buffer;
   /** The last bytes of the stream, when the producer observed its end. */
   readonly suffix?: Buffer;
+  /** The first ISO 9660 descriptor signature, when the stream reached it. */
+  readonly iso9660Descriptor?: Buffer;
   readonly asarHeader: FinalAsarHeaderProbeObservation;
   readonly fatSliceHeaders?: FatSliceHeaderEvidence;
   readonly mzWindowsHeaderSignature?: MzWindowsHeaderSignatureEvidence;
@@ -89,6 +95,7 @@ const observeFatSliceHeaders = (input: {
 const finishClassificationEvidence = (
   prefix: Buffer,
   suffix: Buffer | undefined,
+  iso9660Descriptor: Buffer | undefined,
   archiveBytes: number,
   finishAsar: (archiveBytes: number) => FinalAsarHeaderProbeObservation,
   sliceHeadersByOffset: Map<number, MachoHeaderPrefixFacts>,
@@ -121,6 +128,7 @@ const finishClassificationEvidence = (
   return {
     prefix,
     ...(suffix === undefined ? {} : { suffix }),
+    ...(iso9660Descriptor === undefined ? {} : { iso9660Descriptor }),
     asarHeader: finishAsar(archiveBytes),
     ...(fatSliceHeaders === undefined ? {} : { fatSliceHeaders }),
     ...(mzWindowsHeaderSignature === undefined
@@ -151,6 +159,28 @@ export const createArtifactClassificationProbe = (
   let mzHeaderChecked = false;
   const suffixBuffer = Buffer.allocUnsafe(ARTIFACT_CLASSIFICATION_SUFFIX_BYTES);
   let suffixLength = 0;
+  // The descriptor lies past the retained prefix; keep its signature window.
+  const isoDescriptor = Buffer.alloc(ISO9660_SIGNATURE_BYTES);
+  let isoDescriptorBytes = 0;
+  const observeIsoDescriptor = (
+    sourceOffset: number,
+    bytes: Uint8Array,
+  ): void => {
+    const start = Math.max(
+      ISO9660_DESCRIPTOR_OFFSET + isoDescriptorBytes,
+      sourceOffset,
+    );
+    const end = Math.min(
+      ISO9660_DESCRIPTOR_OFFSET + ISO9660_SIGNATURE_BYTES,
+      sourceOffset + bytes.length,
+    );
+    if (start >= end) return;
+    isoDescriptor.set(
+      bytes.subarray(start - sourceOffset, end - sourceOffset),
+      start - ISO9660_DESCRIPTOR_OFFSET,
+    );
+    isoDescriptorBytes = end - ISO9660_DESCRIPTOR_OFFSET;
+  };
   const observeSuffix = (bytes: Uint8Array): void => {
     if (bytes.length === 0) return;
     if (bytes.length >= ARTIFACT_CLASSIFICATION_SUFFIX_BYTES) {
@@ -329,6 +359,7 @@ export const createArtifactClassificationProbe = (
         observeRecordWindow(mzWindowsHeaderOffset, streamOffset, bytes);
       }
       observeSuffix(bytes);
+      observeIsoDescriptor(streamOffset, bytes);
       observedBytes += bytes.length;
     },
     finish(archiveBytes: number): ArtifactClassificationEvidence {
@@ -337,6 +368,9 @@ export const createArtifactClassificationProbe = (
         // Bytes the probe did not observe could still follow its last write.
         observedBytes === archiveBytes
           ? suffixBuffer.subarray(0, suffixLength)
+          : undefined,
+        isoDescriptorBytes === ISO9660_SIGNATURE_BYTES
+          ? Buffer.from(isoDescriptor)
           : undefined,
         archiveBytes,
         (bytes) => asar.finish(bytes),
