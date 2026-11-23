@@ -22,6 +22,8 @@ export const BINARY_TARGET_FORMAT_KINDS = {
   "godot-pck": "archive",
   unityfs: "archive",
   wxapkg: "archive",
+  axml: "archive",
+  arsc: "archive",
   uimage: "archive",
   "android-boot-image": "archive",
   "android-ota-payload": "archive",

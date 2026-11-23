@@ -131,6 +131,8 @@ The [REA website](https://rea.tools/) has worked examples and product pages.
 - [UnityFS AssetBundle archives](unityfs.md)
 - [iNES containers](ines-containers.md)
 - [WeChat mini-program wxapkg archives](wxapkg.md)
+- [Android binary XML (AXML)](axml.md)
+- [Android compiled resources (arsc)](arsc.md)
 
 ## WebAssembly
 

@@ -235,6 +235,8 @@ export interface ArtifactReader {
     | "godot-pck"
     | "unityfs"
     | "wxapkg"
+    | "axml"
+    | "arsc"
     | "uimage"
     | "android-boot-image"
     | "android-ota-payload"

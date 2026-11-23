@@ -513,6 +513,16 @@ export const documentationSections = [
         source: "wxapkg.md",
         route: "/wxapkg",
       },
+      {
+        text: "Android binary XML (AXML)",
+        source: "axml.md",
+        route: "/axml",
+      },
+      {
+        text: "Android compiled resources (arsc)",
+        source: "arsc.md",
+        route: "/arsc",
+      },
     ],
   },
   {
