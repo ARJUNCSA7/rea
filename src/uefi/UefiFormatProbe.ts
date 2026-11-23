@@ -35,6 +35,31 @@ export function admitUefiFlashImage(
   );
 }
 
+/** Known file facts a caller already read before probing for a PI flash image. */
+export interface UefiFlashProbeKnownInput {
+  readonly fileSize?: number;
+  readonly prefix?: Buffer;
+}
+
+/** Extend previously observed bytes without allocating a second tail buffer. */
+const extendPrefix = async (
+  handle: FileHandle,
+  prefix: Buffer,
+  length: number,
+  assertActive: () => void,
+): Promise<Buffer> => {
+  const bytes = Buffer.alloc(length);
+  prefix.copy(bytes);
+  const tail = await readFileHandleRange(
+    handle,
+    prefix.length,
+    length - prefix.length,
+    assertActive,
+    bytes.subarray(prefix.length),
+  );
+  return bytes.subarray(0, prefix.length + tail.length);
+};
+
 /**
  * Detect a PI flash image through an aligned `_FVH` plausibility probe over
  * the declared admission prefix (1 MiB). The prefix decides most misses
@@ -47,19 +72,32 @@ export function admitUefiFlashImage(
 export async function probeUefiFlashImage(
   handle: FileHandle,
   signal?: AbortSignal,
+  known?: UefiFlashProbeKnownInput,
 ): Promise<boolean> {
   const throwIfCancelled = (): void => {
     if (signal?.aborted === true)
       throw cancelledBy("resolve_binary_target", signal);
   };
   throwIfCancelled();
-  const { size } = await handle.stat();
-  const prefix = await readFileHandleRange(
-    handle,
-    0,
-    Math.min(UEFI_FIRMWARE_LIMITS.scanProbeBytes, size),
-    throwIfCancelled,
-  );
+  const size = known?.fileSize ?? (await handle.stat()).size;
+  throwIfCancelled();
+  if (known?.prefix !== undefined && claimsExecutableHeader(known.prefix, size))
+    return false;
+
+  const probeBytes = Math.min(UEFI_FIRMWARE_LIMITS.scanProbeBytes, size);
+  let prefix: Buffer;
+  if (known?.prefix !== undefined && known.prefix.length >= probeBytes) {
+    prefix = known.prefix.subarray(0, probeBytes);
+  } else if (known?.prefix !== undefined && known.prefix.length > 0) {
+    prefix = await extendPrefix(
+      handle,
+      known.prefix,
+      probeBytes,
+      throwIfCancelled,
+    );
+  } else {
+    prefix = await readFileHandleRange(handle, 0, probeBytes, throwIfCancelled);
+  }
   throwIfCancelled();
   if (
     claimsExecutableHeader(prefix, size) ||
@@ -72,7 +110,7 @@ export async function probeUefiFlashImage(
   const observed =
     readLimit <= prefix.length
       ? prefix
-      : await readFileHandleRange(handle, 0, readLimit, throwIfCancelled);
+      : await extendPrefix(handle, prefix, readLimit, throwIfCancelled);
   throwIfCancelled();
   return admitUefiFlashImage(observed, prefix.length);
 }
