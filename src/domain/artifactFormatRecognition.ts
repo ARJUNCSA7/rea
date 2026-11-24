@@ -12,6 +12,10 @@ import { recognizeAndroidOtaPayload } from "./firmware/androidOtaPayload.js";
 import { hasUImageMagic } from "./uimageFormat.js";
 import { hasUnityFsHeader } from "./unityfsFormat.js";
 import { hasMftFileRecordHeader } from "./windows/ntfsMft.js";
+import {
+  hasMamSignature,
+  hasPrefetchSignature,
+} from "./windows/prefetchFormat.js";
 import { hasWindowsShortcutHeader } from "./windows/windowsShortcutHeader.js";
 import { BinaryFormatFailure } from "./binaryContainer.js";
 import {
@@ -51,6 +55,7 @@ export type RecognizedArtifactFormat = Extract<
   | "esp-flash-image"
   | "esp-image"
   | "fit"
+  | "windows-prefetch"
   | "ntfs-mft"
   | "plist"
   | StandaloneArtifactFormat
@@ -189,6 +194,10 @@ export const ARTIFACT_FORMAT_RECOGNIZERS: readonly ArtifactFormatRecognizer[] =
         : { state: "refused", format: "esp-image", reason: ESP8266_REFUSAL };
     },
     when("fit", hasFitImagesNode),
+    when(
+      "windows-prefetch",
+      (prefix) => hasPrefetchSignature(prefix) || hasMamSignature(prefix),
+    ),
     when("ntfs-mft", hasMftFileRecordHeader),
     when("sqlite", hasSqliteHeader),
     when("windows-shortcut", hasWindowsShortcutHeader),

@@ -518,6 +518,11 @@ export const documentationSections = [
         source: "gpu-asset-headers.md",
         route: "/gpu-asset-headers",
       },
+      {
+        text: "Windows Prefetch files",
+        source: "windows-prefetch.md",
+        route: "/windows-prefetch",
+      },
     ],
   },
   {

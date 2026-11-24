@@ -261,6 +261,7 @@ export interface ArtifactReader {
     | "dfuse"
     | "esp-flash-image"
     | "fit"
+    | "windows-prefetch"
     | "ntfs-mft"
     | "file";
   entries(
