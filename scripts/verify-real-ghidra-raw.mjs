@@ -35,6 +35,7 @@ import {
   VerifierFixture,
   withVerifierFixture,
 } from "./lib/verifier-fixture.mjs";
+import { completeEvidenceClient } from "./lib/complete-evidence.mjs";
 
 if (process.argv.length !== 2)
   throw new Error("Usage: node scripts/verify-real-ghidra-raw.mjs");
@@ -115,7 +116,9 @@ const transport = new StdioClientTransport({
   env: env,
   stderr: "pipe",
 });
-const client = new Client({ name: "rea-real-raw-proof", version: "1" });
+const client = completeEvidenceClient(
+  new Client({ name: "rea-real-raw-proof", version: "1" }),
+);
 let stderr = "";
 transport.stderr?.on("data", (chunk) => {
   stderr = (stderr + chunk.toString()).slice(-65536);
@@ -290,6 +293,8 @@ await withVerifierFixture(workspaceFixture, async () => {
       [
         entrypoint,
         "inspect-native-load-image",
+        "--detail",
+        "complete",
         path,
         "--target-format",
         "raw-binary",
@@ -321,7 +326,11 @@ await withVerifierFixture(workspaceFixture, async () => {
         architecture,
         entry_point: "0x1000",
       });
-      const image = await call("inspect_native_load_image", {}, x86Sha256);
+      const image = await call(
+        "inspect_native_load_image",
+        { detail: "complete" },
+        x86Sha256,
+      );
       assert.equal(
         image.normalized_result.status,
         "verified",
@@ -344,7 +353,7 @@ await withVerifierFixture(workspaceFixture, async () => {
       );
       const pseudo = await call(
         "procedure_pseudo_code",
-        { procedure: "0x1000" },
+        { detail: "complete", procedure: "0x1000" },
         x86Sha256,
       );
       assert.match(pseudo.normalized_result, /\b(?:42|0x2a)\b/iu);
@@ -819,10 +828,12 @@ async function verifyCrossBlockProject(target, targetSha256) {
     },
     stderr: "pipe",
   });
-  const projectClient = new Client({
-    name: "rea-cross-block-project-proof",
-    version: "1",
-  });
+  const projectClient = completeEvidenceClient(
+    new Client({
+      name: "rea-cross-block-project-proof",
+      version: "1",
+    }),
+  );
   try {
     await untilInterrupted(
       projectClient.connect(projectTransport, {

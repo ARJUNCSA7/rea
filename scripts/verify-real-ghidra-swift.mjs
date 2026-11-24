@@ -24,6 +24,7 @@ import {
   VerifierFixture,
   withVerifierFixture,
 } from "./lib/verifier-fixture.mjs";
+import { completeEvidenceClient } from "./lib/complete-evidence.mjs";
 
 const run = createVerifierRun();
 const installation = await inspectVerifierGhidraInstallation({
@@ -68,7 +69,9 @@ const retainWorkspace = (message, options) => {
   rootFixture.retain(message);
   return new Error(message, options);
 };
-const client = new Client({ name: "ghidra-swift-verifier", version: "1" });
+const client = completeEvidenceClient(
+  new Client({ name: "ghidra-swift-verifier", version: "1" }),
+);
 const transport = new StdioClientTransport({
   command: process.execPath,
   args: [fileURLToPath(new URL("./rea.mjs", import.meta.url)), "mcp"],
@@ -159,7 +162,9 @@ await withVerifierFixture(rootFixture, async () => {
     ]) {
       await call("open_binary", { path, provider_id: "ghidra" });
       await withVerifierCleanup(async () => {
-        const procedures = await call("list_procedures", {});
+        const procedures = await call("list_procedures", {
+          detail: "complete",
+        });
         const inventory = await call("analyze_swift_types", {});
         assert(
           inventory.total > 0,
@@ -292,7 +297,7 @@ async function call(name, arguments_) {
 async function verifyStringLiterals() {
   await call("open_binary", { path: literalBinary, provider_id: "ghidra" });
   return withVerifierCleanup(async () => {
-    const procedures = await call("list_procedures", {});
+    const procedures = await call("list_procedures", { detail: "complete" });
     const expected = {
       smallLiteral: [["SleepDisabled", "small"]],
       largeLiteral: [["The power setting could not be changed.", "large"]],

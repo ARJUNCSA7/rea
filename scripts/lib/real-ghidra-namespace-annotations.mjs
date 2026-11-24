@@ -8,6 +8,7 @@ import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { inspectVerifierGhidraInstallation } from "./ghidra-installation-inspection.mjs";
+import { completeEvidenceCliArguments } from "./complete-evidence.mjs";
 
 /** Exercise qualified annotation names against real demangled C++ ABI symbols. */
 export async function verifyGhidraNamespaceAnnotations({
@@ -71,6 +72,7 @@ export async function verifyGhidraNamespaceAnnotations({
     // Search accepts the leaf spelling exact lookup accepts, keeping each
     // procedure as one row under its qualified primary name.
     const leafMatches = await call("search_procedures", {
+      detail: "complete",
       pattern: "^same$",
       mode: "regex",
       case_sensitive: true,
@@ -106,6 +108,7 @@ export async function verifyGhidraNamespaceAnnotations({
       }
       assert.equal(
         await call("procedure_address", {
+          detail: "complete",
           procedure: qualified.annotations.name,
         }),
         address,
@@ -238,7 +241,7 @@ async function verifyDuplicateAddressNames(call, evidence, procedures, names) {
   );
 
   for (const [kind, entries] of [
-    ["function", functionEntries],
+    await completeEvidenceCliArguments(["function", functionEntries]),
     ["label", labelEntries],
   ]) {
     const [owner, duplicate] = entries;

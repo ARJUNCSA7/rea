@@ -41,6 +41,8 @@ import {
 } from "./lib/verifier-run.mjs";
 import { VerifierFixture } from "./lib/verifier-fixture.mjs";
 import { requireLaneToolchain } from "../tests/conformance/ghidra/fixture-toolchain.mjs";
+import { completeEvidenceCliArguments } from "./lib/complete-evidence.mjs";
+import { completeEvidenceClient } from "./lib/complete-evidence.mjs";
 
 if (process.argv.length !== 2)
   throw new Error("Usage: node scripts/verify-real-ghidra-riscv.mjs");
@@ -103,7 +105,9 @@ const transport = new StdioClientTransport({
   env: env,
   stderr: "pipe",
 });
-const client = new Client({ name: "rea-real-riscv-proof", version: "1" });
+const client = completeEvidenceClient(
+  new Client({ name: "rea-real-riscv-proof", version: "1" }),
+);
 let stderr = "";
 transport.stderr?.on("data", (chunk) => {
   stderr = (stderr + chunk.toString()).slice(-65536);
@@ -342,6 +346,7 @@ try {
     });
     assert.equal(global.bytes_hex, "07000000");
     const callees = await call("procedure_callees", {
+      detail: "complete",
       procedure: addressFor("rea_riscv_entry"),
     });
     for (const name of soft
@@ -360,6 +365,7 @@ try {
     assert.ok(dossier.pseudocode.trim().length > 0);
     if (!stripped) {
       const floatCode = await call("procedure_pseudo_code", {
+        detail: "complete",
         procedure: addressFor(soft ? "rea_riscv_abi_wide" : "rea_riscv_float"),
       });
       assert.ok(typeof floatCode === "string" && floatCode.trim().length > 0);
@@ -434,10 +440,10 @@ try {
 
     for (const [command, arguments_] of [
       ...(stripped ? [] : [["search", ["rea_riscv_", "--kind", "procedures"]]]),
-      [
+      await completeEvidenceCliArguments([
         "function",
         [stripped ? addressFor("rea_riscv_entry") : "rea_riscv_entry"],
-      ],
+      ]),
     ]) {
       const cli = await execOwned(
         process.execPath,
@@ -541,12 +547,14 @@ try {
         );
         const cliArguments = [
           entrypoint,
-          "function",
-          mutatedPath,
-          "rea_riscv_entry",
-          "--provider",
-          "ghidra",
-          "--json",
+          ...(await completeEvidenceCliArguments([
+            "function",
+            mutatedPath,
+            "rea_riscv_entry",
+            "--provider",
+            "ghidra",
+            "--json",
+          ])),
         ];
         const cliOptions = {
           env,
