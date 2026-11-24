@@ -248,6 +248,7 @@ export interface ArtifactReader {
     | "uimage"
     | "android-boot-image"
     | "android-ota-payload"
+    | "ubi-image"
     | "uefi"
     | "pyinstaller"
     | "dotnet-bundle"
