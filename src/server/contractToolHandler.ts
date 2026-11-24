@@ -23,6 +23,7 @@ import type { AnalysisViewRequest } from "../domain/analysisView/analysisViewReq
 import type { EvidenceWriter } from "../application/investigation/InvestigationRecordPort.js";
 import type { ToolContract } from "../contracts/toolContractTypes.js";
 import type { AnalysisError } from "../domain/analysisErrorBase.js";
+import { withEvidenceProviderSelection } from "../domain/evidence.js";
 import type { Evidence } from "../domain/evidence.js";
 import type { JsonValue } from "../domain/jsonValue.js";
 import { isRecord } from "../kernel/isRecord.js";
@@ -53,6 +54,24 @@ export interface ContractToolService<TOperation extends string> {
   ): Promise<Result<Evidence, AnalysisError>>;
 }
 
+/**
+ * Recording stamps the active session's provider selection onto the retained
+ * record under the same semantic ID. A workflow that builds its own Evidence
+ * value would otherwise deliver an unattributed copy, so the response and the
+ * snapshot export disagree for one evidence_id. Carry the stamp on the copy
+ * this call delivers; other retained display metadata stays as the workflow
+ * built it.
+ */
+const stampSessionSelection = (
+  evidenceById: ((id: string) => Evidence | undefined) | undefined,
+  evidence: Evidence,
+): Evidence => {
+  const retained = evidenceById?.(evidence.evidence_id);
+  return retained?.provider_selection === undefined
+    ? evidence
+    : withEvidenceProviderSelection(evidence, retained.provider_selection);
+};
+
 /** Record and deliver one Evidence result using the tool's exact contract. */
 export const deliverEvidenceResult = (
   server: EvidenceMcpServer,
@@ -60,6 +79,7 @@ export const deliverEvidenceResult = (
   contract: ToolContract,
   recordEvidence?: EvidenceWriter["recordEvidence"],
   viewSource?: JsonValue | (() => JsonValue | undefined),
+  evidenceById?: (id: string) => Evidence | undefined,
 ): CallToolResult => {
   if (!result.ok)
     return server.delivery.toPartialErrorToolResult(
@@ -68,8 +88,11 @@ export const deliverEvidenceResult = (
       recordEvidence,
     );
   const recorded = recordEvidence?.(result.value);
+  // Recording stamps the active session's provider selection onto the retained
+  // record, so a producer that built its own Evidence value would otherwise
+  // deliver an unattributed copy of the same evidence_id.
   return server.delivery.toEvidenceToolResult(
-    result.value,
+    stampSessionSelection(evidenceById, result.value),
     contract,
     recorded,
     viewSource,
@@ -183,6 +206,7 @@ export const createEvidenceToolHandler =
     recordEvidence?: EvidenceWriter["recordEvidence"],
     withAdmittedAnalysis?: WithAdmittedAnalysis,
     viewSource?: (input: unknown) => JsonValue | undefined,
+    evidenceById?: (id: string) => Evidence | undefined,
   ) =>
   <TOperation extends string>(contract: ToolContract<TOperation>) =>
   (input: unknown, context: ServerContext) =>
@@ -204,6 +228,7 @@ export const createEvidenceToolHandler =
           contract,
           recordEvidence,
           viewSource === undefined ? undefined : () => viewSource(input),
+          evidenceById,
         );
       },
     );
@@ -573,16 +598,26 @@ export const createAnalysisToolHandler =
                   : analyzed,
                 contract,
                 retention.recordEvidence,
+                undefined,
+                retention.evidenceById,
               )
             : analyzed.value.recorded === undefined
               ? deliverEvidenceResult(
                   server,
-                  ok(analyzed.value.evidence),
+                  ok(
+                    stampSessionSelection(
+                      retention.evidenceById,
+                      analyzed.value.evidence,
+                    ),
+                  ),
                   contract,
                   retention.recordEvidence,
                 )
               : server.delivery.toEvidenceToolResult(
-                  analyzed.value.evidence,
+                  stampSessionSelection(
+                    retention.evidenceById,
+                    analyzed.value.evidence,
+                  ),
                   contract,
                   analyzed.value.recorded,
                 );
