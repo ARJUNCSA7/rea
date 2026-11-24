@@ -26,8 +26,11 @@ const targetOffset = cliDecimalField(z.number().int().nonnegative().optional());
 export const registerUefiCommands = (
   cli: CliInstance,
   logger: Logger,
+  environment: Readonly<NodeJS.ProcessEnv> = process.env,
 ): void => {
-  const service = createUefiAnalysisService(createUefiAnalysisProvider());
+  const service = createUefiAnalysisService(
+    createUefiAnalysisProvider(environment),
+  );
   const run = (operation: UefiOperation) =>
     inspectWithService(
       () => ({
@@ -160,5 +163,27 @@ export const registerUefiCommands = (
         context,
       );
     },
+  );
+
+  registerContractCommand(
+    cli,
+    logger,
+    contractNamed(UEFI_TOOL_CONTRACTS, "decompile_uefi_firmware"),
+    {
+      description:
+        "Decompile all PE32 and TE modules of a UEFI flash image or pre-extracted module directory into a structured C source tree",
+      positionals: ["path", "output_directory"],
+      callerPaths: ["path", "output_directory"],
+      fields: {
+        path: {
+          description:
+            "Firmware image or pre-extracted module directory to decompile",
+        },
+        output_directory: {
+          description: "Absent output directory; parent must exist",
+        },
+      },
+    },
+    run("decompile_uefi_firmware"),
   );
 };

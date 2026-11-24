@@ -79,7 +79,9 @@ export const createJebAnalysisService = (
 export const createUefiAnalysisService = (
   provider: UefiAnalysisPort,
 ): UefiAnalysisService =>
-  new ProviderOperationService(provider, uefiRequestSchema, "observed");
+  new ProviderOperationService(provider, uefiRequestSchema, (operation) =>
+    operation === "decompile_uefi_firmware" ? "derived" : "observed",
+  );
 
 export const createPcapAnalysisService = (
   provider: RequestAnalysisPort<PcapRequest>,
