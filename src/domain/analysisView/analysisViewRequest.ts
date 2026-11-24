@@ -65,6 +65,7 @@ import { androidViewRequestSchema } from "../android/androidPackageQuery.js";
 import { androidJniViewRequestSchema } from "../android/androidJniQuery.js";
 import { dartAotViewRequestSchema } from "./dartAotView.js";
 import { il2cppMetadataViewRequestSchema } from "./il2cppMetadataView.js";
+import { unrealPakViewRequestSchema } from "./unrealPakView.js";
 import {
   facetViewSchema,
   itemViewSchema,
@@ -145,6 +146,7 @@ export const analysisViewRequestSchema = z.discriminatedUnion("kind", [
   il2cppMetadataViewRequestSchema,
   apkSignatureViewRequestSchema,
   modelArtifactViewRequestSchema,
+  unrealPakViewRequestSchema,
   gpuCodeObjectsViewRequestSchema,
 ]);
 
