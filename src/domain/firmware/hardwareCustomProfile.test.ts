@@ -536,4 +536,79 @@ describe("CMSIS-SVD XML comments and iterative traversal", () => {
       );
     }
   });
+
+  it("handles regex metacharacters in SVD peripheral names literally without backtracking or throwing", () => {
+    const longSuffix = `${"a".repeat(256)}!`;
+    const parsed = parseCmsisSvd(`
+      <device><name>LiteralPrefixSvd</name><peripherals>
+        <peripheral>
+          <name>(a+)+</name>
+          <baseAddress>0x40000000</baseAddress>
+          <registers>
+            <register>
+              <name>${longSuffix}</name>
+              <description>(a+)+ ${longSuffix}</description>
+              <addressOffset>0x00</addressOffset>
+            </register>
+          </registers>
+        </peripheral>
+        <peripheral derivedFrom="(a+)+">
+          <name>A[</name>
+          <baseAddress>0x40001000</baseAddress>
+        </peripheral>
+        <peripheral derivedFrom="A[">
+          <name>B$</name>
+          <baseAddress>0x40002000</baseAddress>
+        </peripheral>
+      </peripherals></device>
+    `);
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.value.peripherals).toHaveLength(3);
+    expect(parsed.value.peripherals[1]?.registers[0]).toEqual({
+      offset: 0n,
+      mnemonic: `A[_${longSuffix}`,
+      name: `A[ ${longSuffix}`,
+    });
+    expect(parsed.value.peripherals[2]?.registers[0]).toEqual({
+      offset: 0n,
+      mnemonic: `B$_${longSuffix}`,
+      name: `B$ ${longSuffix}`,
+    });
+  });
+
+  it("expands top-level peripheral dim arrays under the expansion budgets and resolves derived peripherals", () => {
+    const parsed = parseCmsisSvd(`
+      <device><name>PeriphArraySvd</name><peripherals>
+        <peripheral>
+          <dim>2</dim>
+          <dimIncrement>0x400</dimIncrement>
+          <dimIndex>A-B</dimIndex>
+          <name>GPIO%s</name>
+          <baseAddress>0x40020000</baseAddress>
+          <addressBlock><offset>0x0</offset><size>0x400</size></addressBlock>
+          <registers>
+            <register><name>ODR</name><addressOffset>0x14</addressOffset></register>
+          </registers>
+        </peripheral>
+        <peripheral derivedFrom="GPIO%s">
+          <name>GPIOC</name>
+          <baseAddress>0x40020800</baseAddress>
+        </peripheral>
+      </peripherals></device>
+    `);
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(
+      parsed.value.peripherals.map((item) => ({
+        name: item.name,
+        base: item.baseAddress,
+        reg: item.registers[0]?.mnemonic,
+      })),
+    ).toEqual([
+      { name: "GPIOA", base: "0x40020000", reg: "GPIOA_ODR" },
+      { name: "GPIOB", base: "0x40020400", reg: "GPIOB_ODR" },
+      { name: "GPIOC", base: "0x40020800", reg: "GPIOC_ODR" },
+    ]);
+  });
 });

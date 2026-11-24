@@ -6,15 +6,13 @@ import {
 import type { DirectAnalysis } from "../composition/directAnalysis.js";
 import { cliCommandFor } from "../contracts/cliCommandNames.js";
 import type { Logger } from "pino";
-import { nativeTarget } from "./options.js";
+import { nativeTarget } from "./nativeTargetOption.js";
 import type { CliInstance } from "./types.js";
 import { contractNamed } from "./contractCliDescription.js";
 import { ENHANCED_TOOL_CONTRACTS } from "../contracts/enhancedToolContracts.js";
 import { OFFICIAL_TOOL_CONTRACTS } from "../contracts/officialToolContracts.js";
-import {
-  registerContractCommand,
-  runDirectOnTarget,
-} from "./contractCommand.js";
+import { registerContractCommand } from "./contractCommand.js";
+import { runDirectOnTarget } from "./contractCommandRunners.js";
 
 const executable = nativeTarget("Local executable path");
 const nativeApplication = nativeTarget("Local native executable or app path");
@@ -316,9 +314,16 @@ const registerProcedureSelectorCommands = (
       "reconstruct_procedure_hardware_interactions",
     ),
     {
-      description: `Reconstruct MMIO and peripheral register interactions for one native firmware procedure. ${addressOrProcedureGuidance}`,
+      description: `Reconstruct MMIO and peripheral register interactions for one native firmware procedure. ${addressOrProcedureGuidance} ${equalSelectorGuidance}`,
       sessionTarget: nativeTarget("Local firmware or executable path", true),
       positionals: ["procedure"],
+      selectorOptions: {
+        procedure: {
+          name: "procedure",
+          description: `Procedure selector; use this option for symbols beginning with a dash. ${addressOrProcedureGuidance}`,
+          kind: "native",
+        },
+      },
       jsonInputs: {
         devicetree:
           "Expected inline JSON or a readable JSON file path for --devicetree",

@@ -223,4 +223,116 @@ it("executes reconstruct-procedure-hardware-interactions through the public CLI 
   expect(
     parsed.peripheralBlocks.some((block) => block.socPeripheralName === "RCC"),
   ).toBe(true);
+
+  let dashStdout = "";
+  await cli.serve(
+    [
+      "reconstruct-procedure-hardware-interactions",
+      targetPath,
+      "--procedure=-sub_init",
+      "--hardware-architecture",
+      "riscv",
+      "--svd-xml",
+      `<device><name>Rv64SoC</name><peripherals>
+        <peripheral>
+          <dim>2</dim>
+          <dimIncrement>0x1000</dimIncrement>
+          <dimIndex>0,1</dimIndex>
+          <name>UART%s</name>
+          <baseAddress>0x400000000</baseAddress>
+          <addressBlock><offset>0x0</offset><size>0x1000</size></addressBlock>
+          <registers>
+            <register><name>THR</name><addressOffset>0x00</addressOffset></register>
+          </registers>
+        </peripheral>
+      </peripherals></device>`,
+      "--provider",
+      "fixture",
+      "--json",
+    ],
+    {
+      env: {},
+      stdout: (text) => {
+        dashStdout += text;
+      },
+      exit: () => undefined,
+    },
+  );
+  const dashParsed = hardwarePeripheralReconstructionResultSchema.parse(
+    (JSON.parse(dashStdout) as { normalized_result: unknown })
+      .normalized_result,
+  );
+  expect(dashParsed.procedure).toBe("-sub_init");
+  expect(dashParsed.architecture).toBe("riscv");
+});
+
+it("attributes 64-bit RISC-V peripheral windows above 0xffffffff through MCP", async () => {
+  const harness = await connectGhidraMcp(
+    "ghidra-rv64-hardware-reconstruction",
+    async (operation) => {
+      if (operation === "procedure_references") {
+        return ok(
+          jsonValueSchema.parse({
+            value: {
+              ...SAMPLE_REFERENCES,
+              references: [
+                {
+                  ...ghidraReferenceEdge(),
+                  source_address: "0x80200010",
+                  target_address: "0x400001000",
+                },
+              ],
+            },
+            limitations: [],
+          }),
+        );
+      }
+      throw new Error(`Unexpected provider operation: ${operation}`);
+    },
+  );
+  try {
+    const catalog = await harness.mcp.listTools();
+    const definition = catalog.tools.find(
+      (tool) => tool.name === "reconstruct_procedure_hardware_interactions",
+    )!;
+    const reply = await harness.mcp.callTool(
+      {
+        name: "reconstruct_procedure_hardware_interactions",
+        arguments: {
+          procedure: "rv64_uart_putc",
+          hardware_architecture: "riscv",
+          svd_xml: `<device><name>Rv64SoC</name><peripherals>
+            <peripheral>
+              <dim>2</dim>
+              <dimIncrement>0x1000</dimIncrement>
+              <dimIndex>0,1</dimIndex>
+              <name>UART%s</name>
+              <baseAddress>0x400000000</baseAddress>
+              <addressBlock><offset>0x0</offset><size>0x1000</size></addressBlock>
+              <registers>
+                <register><name>THR</name><addressOffset>0x00</addressOffset></register>
+              </registers>
+            </peripheral>
+          </peripherals></device>`,
+        },
+      },
+      { toolDefinition: withCanonicalOutputSchema(definition) },
+    );
+    expect(reply.isError).not.toBe(true);
+    const evidence = sessionEvidence(harness.session, reply.structuredContent);
+    const parsed = hardwarePeripheralReconstructionResultSchema.parse(
+      evidence.normalized_result,
+    );
+    expect(parsed.mmioAccessCount).toBe(1);
+    expect(parsed.peripheralBlocks).toEqual([
+      expect.objectContaining({
+        blockBase: "0x400001000",
+        socPeripheralName: "UART1",
+        socPeripheralNameBasis: "explicit_profile",
+        knownRegisters: ["UART1_THR"],
+      }),
+    ]);
+  } finally {
+    await harness.close();
+  }
 });

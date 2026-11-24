@@ -59,7 +59,9 @@ const HEX_ADDRESS_PATTERN = /^0x[0-9a-fA-F]{1,16}$/u;
 const formatHex = (value: bigint): string => `0x${value.toString(16)}`;
 
 const maxAddressFor = (architecture: HardwareArchitecture): bigint =>
-  architecture === "arm64" ? 0xffffffffffffffffn : 0xffffffffn;
+  architecture === "arm64" || architecture === "riscv"
+    ? 0xffffffffffffffffn
+    : 0xffffffffn;
 
 // Standard ARM Cortex-M / ARMv7-M / ARMv8-M memory architecture.
 const ARM_REGIONS: readonly HardwareMemoryRegionDefinition[] = [

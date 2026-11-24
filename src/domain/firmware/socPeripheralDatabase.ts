@@ -32,8 +32,6 @@ import {
   type PeripheralBusKind,
 } from "./socCatalogs/types.js";
 
-export type { PeripheralBusKind } from "./socCatalogs/types.js";
-
 /** Supported microcontroller and SoC platform families. */
 export const SOC_PLATFORMS = [
   "stm32f1",

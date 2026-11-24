@@ -287,12 +287,20 @@ describe("hardware memory map address parsing and overflow boundaries", () => {
     expect(mipsOverflow.ok).toBe(false);
   });
 
-  it("admits 64-bit addresses on arm64 and rejects 64-bit overflow", () => {
+  it("admits 64-bit addresses on arm64 and riscv and rejects 64-bit overflow", () => {
     const valid64 = classifyHardwareMemoryAddress(
       "0x0000000040000000",
       "arm64",
     );
     expect(valid64.ok).toBe(true);
+
+    const riscvHigh = classifyHardwareMemoryAddress("0x400000000", "riscv");
+    expect(riscvHigh.ok && riscvHigh.value).toMatchObject({
+      canonicalAddress: "0x400000000",
+      architecture: "riscv",
+      regionKind: "reserved",
+      isMmio: false,
+    });
 
     const overflow64 = parseAddressValue("0x10000000000000000");
     expect(overflow64.ok).toBe(false);
