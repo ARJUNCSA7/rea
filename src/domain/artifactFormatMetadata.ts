@@ -38,6 +38,7 @@ import {
   androidBootImageMetadataSchema,
   androidOtaPartitionMetadataSchema,
   androidOtaPayloadMetadataSchema,
+  auditdLogMetadataSchema,
   ntfsMftMetadataSchema,
 } from "./formatMetadata/androidAndSystemMetadata.js";
 
@@ -69,6 +70,7 @@ export const artifactFormatMetadataSchema = z.discriminatedUnion("kind", [
   uf2MetadataSchema,
   uf2RegionMetadataSchema,
   ntfsMftMetadataSchema,
+  auditdLogMetadataSchema,
   dfuSeMetadataSchema,
   dfuSeElementMetadataSchema,
   espFlashImageMetadataSchema,
@@ -240,6 +242,10 @@ const declarationsByKind: {
   "ntfs-mft": {
     notCompared:
       "Its fields come from the file's own FILE record headers and resident file-name attributes, which content comparison covers.",
+  },
+  "auditd-log": {
+    notCompared:
+      "Its fields come from the file's own record headers, which content comparison covers.",
   },
   dfuse: {
     notCompared:
