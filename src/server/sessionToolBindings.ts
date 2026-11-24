@@ -30,6 +30,7 @@ import {
   compareApplicationVersionsExecution,
   compareJavaScriptExportShapesExecution,
   inspectionExecution,
+  mapResult,
   reconstructionObligationLedgerExecution,
   settledExecution,
   sourceToBundleComparisonExecution,
@@ -45,6 +46,7 @@ import { traceApplicationFeatureEvidence } from "../application/javascript/JavaS
 import { traceJavaScriptSemanticsEvidence } from "../application/javascript/JavaScriptSemanticTraceService.js";
 import { compareStaticAndObservedEndpointsEvidence } from "../application/javascript/StaticObservedEndpointComparisonService.js";
 import { inspectNtfsJournalEvidence } from "../application/ntfs/NtfsJournalService.js";
+import { inspectOtlpTraceEvidence } from "../application/otlpTrace/OtlpTraceService.js";
 import { evaluateReconstructionCoverage } from "../application/ReconstructionCoverageService.js";
 import { exportEnvironmentBundleTool } from "../application/environment/environmentBundleTool.js";
 import { PlaywrightTraceService } from "../application/playwrightTrace/PlaywrightTraceService.js";
@@ -280,6 +282,16 @@ export const bindApplicationWorkflowTools = (
       workflow: async (input, { signal }) =>
         inspectionExecution(
           await inspectNtfsJournalEvidence(input, resources, signal),
+        ),
+    },
+    inspect_otlp_trace: {
+      admission: "sdk",
+      workflow: async (input, { signal }) =>
+        inspectionExecution(
+          mapResult(
+            await inspectOtlpTraceEvidence(input, resources, { signal }),
+            ({ evidence }) => evidence,
+          ),
         ),
     },
     inspect_playwright_trace: {
